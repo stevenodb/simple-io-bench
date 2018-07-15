@@ -3,14 +3,16 @@
 file=bigfile
 copy="${file}.copy"
 # size of bigfile is expressed as power of 2.
-EXP=30
+EXP=32
 
-bold=$(tput bold)
-normal=$(tput sgr0)
+BOLD=$(tput bold)
+NORMAL=$(tput sgr0)
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
 function calculate_rate {
 	rate=$(echo -n "$2" | sed -nE 's#^.*\(([0-9]+) bytes/sec.*$#\1#p' | awk 'END { gb = $1 / 1024**3 ; printf("%.2f GiB/s\n", gb)}')
-	echo -e "$1 $rate"
+	echo -e "$1 ${RED}$rate${NC}"
 }
 
 function create_content {
@@ -18,12 +20,55 @@ function create_content {
 }
 
 function message {
-	echo -e "${bold}$1${normal}"
+	echo -e "${BOLD}$1${NORMAL}"
 }
 
 function humanize {
 	local result=$(echo "$1" | awk '{ byte = $1 /1024**2 ; print byte " MiB" }')
 	echo "$result"
+}
+
+function cleanup {
+  if [ -f ${file} ]; then
+    message "\nClean up?"
+    rm -i ${file} ${file}.*
+  fi
+}
+
+function create_file {
+  if [ ! -f ${file} ]; then
+    size=$(humanize $((2**EXP)))
+    message "\nCreating ${file} of size ${size} bytes with non-null content..."
+    create_content
+  else
+    message "\nReusing existing file."
+  fi
+}
+
+function spin_up_sudo {
+  if [[ $EUID -ne 0 ]]; then
+    message "\nNeed sudo rights to purge disk caches after writing."
+    sudo -v
+  fi
+}
+
+function do_copy {
+  message "\nCopying ${file} to ${copy}..."
+  message "$ dd if=${file} bs=1024k of=${copy}"
+  calculate_rate "COPY rate:" "${RED}$(dd if=${file} bs=1024k of=${copy} conv=swab 2>&1)${NC}"
+}
+
+function do_purge {
+  message "\nPurging disk caches..."
+  message "$ sudo purge"
+  sudo purge
+}
+
+function do_read {
+  message "\nWe read the file back in..."
+  message "$ dd if=${file} bs=1024k of=/dev/null count=1024"
+  calculate_rate "READ rate:" "$(dd if=${file} bs=1024k of=/dev/null 2>&1)"
+  calculate_rate "CACHED READ rate" "$(dd if=${file} bs=1024k of=/dev/null 2>&1)"
 }
 
 clear
@@ -40,42 +85,16 @@ cat <<'_EOF'
  +-------------------------------------------------------------------------%}
 _EOF
 
-if [ -f ${file} ]; then
-	message "\nClean up?"
-	rm -i ${file} ${file}.*
-fi
-
-if [ ! -f ${file} ]; then
-	size=$(humanize $((2**EXP)))
-	message "\nCreating ${file} of size ${size} bytes with non-null content ..."
-	create_content
-else
-	message "\nReusing existing file."
-fi
-
+cleanup
+create_file
 sync
-echo ""
-ls -lh ${file}*
 
-if [[ $EUID -ne 0 ]]; then
-   message "\nNeed sudo rights to purge disk caches after writing."
-   sudo -v
-fi
+echo "" ; ls -lh ${file}*
 
-message "\nCopying ${file} to ${copy} ..."
-message "$ dd if=${file} bs=1024k of=${copy}"
-time calculate_rate "COPY rate:" "$(dd if=${file} bs=1024k of=${copy} conv=swab 2>&1)"
+spin_up_sudo
+do_copy
+do_purge
+do_read
 
-
-message "\nPurging disk caches..."
-message "$ sudo purge"
-sudo purge
-
-
-message "\nWe read the file back in..."
-message "$ dd if=${file} bs=1024k of=/dev/null count=1024"
-calculate_rate "READ rate:" "$(dd if=${file} bs=1024k of=/dev/null 2>&1)"
-calculate_rate "CACHED READ rate" "$(dd if=${file} bs=1024k of=/dev/null 2>&1)"
-echo ""
-
-ls -lh ${file}*
+echo "" ; ls -lh ${file}*
+cleanup
