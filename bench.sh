@@ -66,7 +66,8 @@ function spin_up_sudo {
 function do_copy {
   message "\nCopying ${file} to ${copy}..."
   message "$ dd if=${file} bs=1024k of=${copy}"
-  calculate_rate "COPY rate:" "${RED}$(dd if=${file} bs=1024k of=${copy} conv=swab 2>&1)${NC}"
+  dd if=${file} bs=1024k of=/dev/null > /dev/null 2>&1
+  calculate_rate "COPY rate:" "${RED}$(dd if=${file} bs=1024k of=${copy} 2>&1)${NC}"
 }
 
 function do_purge {
@@ -77,7 +78,7 @@ function do_purge {
 
 function do_read {
   message "\nWe read the file back in..."
-  message "$ dd if=${file} bs=1024k of=/dev/null count=1024"
+  message "$ dd if=${file} bs=1024k of=/dev/null"
   calculate_rate "READ rate:" "$(dd if=${file} bs=1024k of=/dev/null 2>&1)"
   calculate_rate "CACHED READ rate" "$(dd if=${file} bs=1024k of=/dev/null 2>&1)"
 }
