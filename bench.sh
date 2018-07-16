@@ -11,14 +11,14 @@ RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 function calculate_rate {
-	rate=$(echo -n "$2" | sed -nE 's#^.*\(([0-9]+) bytes/sec.*$#\1#p' | awk 'END { gb = $1 / 1024**3 ; printf("%.2f GiB/s\n", gb)}')
-	echo -e "$1 ${RED}$rate${NC}"
+  rate=$(echo -n "$2" | sed -nE 's#^.*\(([0-9]+) bytes/sec.*$#\1#p' | awk 'END { gb = $1 / 1024**3 ; printf("%.2f GiB/s\n", gb)}')
+  echo -e "$1 ${RED}$rate${NC}"
 }
 
 function create_content {
   END=$((EXP-4))
 
-	echo -n "wubba lubba dub " > ${file}
+  echo -n "wubba lubba dub " > ${file}
   for i in $(seq $END); 
   do
     cat ${file} ${file} > ${file}.2; mv ${file}.2 ${file};
@@ -31,12 +31,12 @@ function create_content {
 }
 
 function message {
-	echo -e "${BOLD}$1${NORMAL}"
+  echo -e "${BOLD}$1${NORMAL}"
 }
 
 function humanize {
-	local result=$(echo "$1" | awk '{ byte = $1 /1024**2 ; print byte " MiB" }')
-	echo "$result"
+  local result=$(echo "$1" | awk '{ byte = $1 /1024**2 ; print byte " MiB" }')
+  echo "$result"
 }
 
 function cleanup {
