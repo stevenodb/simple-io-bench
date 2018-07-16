@@ -16,7 +16,18 @@ function calculate_rate {
 }
 
 function create_content {
-	echo -n "wubba lubba dub " > ${file}; for i in $(seq "$((EXP-4))"); do cat ${file} ${file} > ${file}.2; mv ${file}.2 ${file} ; done
+  END=$((EXP-4))
+
+	echo -n "wubba lubba dub " > ${file}
+  for i in $(seq $END); 
+  do
+    cat ${file} ${file} > ${file}.2; mv ${file}.2 ${file};
+    pct=$(( i * 100 / $END ))
+    if (( $i & 1 )) || (($i == $END)); then 
+      echo -ne "\r"
+      echo -n "progress: ${pct}%";
+    fi
+  done
 }
 
 function message {
