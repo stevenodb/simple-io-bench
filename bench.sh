@@ -22,10 +22,9 @@ function create_content {
   for i in $(seq $END); 
   do
     cat ${file} ${file} > ${file}.2; mv ${file}.2 ${file};
-    pct=$(( i * 100 / $END ))
     if (( $i & 1 )) || (($i == $END)); then 
       echo -ne "\r"
-      echo -n "progress: ${pct}%";
+      echo -n "progress: $(du -kh ${file} | cut -f1)";
     fi
   done
 }
